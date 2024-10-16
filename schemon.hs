@@ -3,21 +3,16 @@ class Encoder a where
 
 data SchemONEncoder = SchemONEncoder
 instance Encoder SchemONEncoder where
-    encode (Root t) = encodeType t
+    encode EOF = ""
+    encode (Message pair EOF) = encodePair pair
+    encode (Message pair enc) = encodePair pair ++ "\n" ++ encode enc
 
-newtype Program a = Root (SType a) deriving (Show)
+data Program a = Message (SPair a) (Program a) | EOF deriving (Show)
 
-data SType a = TStr | TInt | TFloat | TBool | TChar | TList (SType a) | TObj (ObjRValue a) | TDateTime | String deriving (Show)
+data SType a = TStr | TInt | TFloat | TBool | TChar | TList (SType a) | TObj (ObjRValue a) | TCustom String deriving (Show)
 data SPair a = SPair String (SType a) deriving (Show)
 
 type ObjRValue a = [SPair a]
-newtype Message a = Message (ObjRValue a)
-
-program :: Program a
-person :: SType a
-
-program = Root person
-person = TObj [SPair "name" TStr, SPair "age" TInt, SPair "phonebook" (TList (TObj [SPair "name" TStr, SPair "number" TStr]))]
 
 encodePair :: SPair a -> String
 encodePair (SPair name t) = name ++ ": " ++ encodeType t
@@ -34,8 +29,20 @@ encodeType t = case t of
     TFloat -> "float"
     TBool -> "bool"
     TChar -> "char"
-    TDateTime -> "datetime"
     TList a -> "[" ++ encodeType a ++ "]"
     TObj a -> "{" ++ encodePairs a ++ "}"
+    TCustom s -> s
 
-test = encode (program :: Program SchemONEncoder)
+
+-- Test program
+
+program :: Program a
+packet :: SPair a
+translate :: SPair a
+
+program = Message packet $ Message translate EOF
+packet = SPair "packet" (TObj [SPair "id" TInt])
+translate = SPair "translate" (TObj [SPair "packet" (TCustom "packet"), SPair "dx" TFloat, SPair "dy" TFloat])
+
+main = do
+    putStrLn $ encode (program :: Program SchemONEncoder)
