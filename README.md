@@ -13,42 +13,27 @@ SchemON supports the following types:
 * `[<type>]` - a list of the specified type
 * `{(<key>: <type>)+}` - a dictionary with the specified key and value pairs
 
-Types are limited to the basic types that are supported by most programming languages for compatibility. More complex types can be defined using dictionaries.
-
-You are also able to create your own types and use them in your schema. The entry point of the schema is the `root` type, which is the type that is expected to be at the top level of the data structure.
-
-If there is only a single object in the schema, the `root` type can be omitted and the object can be defined directly.
+Types are limited to the basic types that are supported by most programming languages for compatibility. More complex types can be defined using dictionaries and you are able to reuse your own defined messages as types. You can only refer to messages that were defined earlier in the file to avoid circular recursion, etc.
 
 ## Example
 
-Here is a simple example that only defines the root object, and thus the `root` type can be omitted:
+Here is an example of a SchemON schema that defines a base `packet` type and a `translate` packet that includes the base type in its definition.
 
 ```js
-{
-    id: int,
-    message: string
+packet: {
+  id: int
+}
+
+translate: {
+  packet: packet,
+  entityId: int,
+  dx: float,
+  dy: float
 }
 ```
 
-Here is an example of a SchemON schema that defines a message with a header and a body and uses a custom type for the timestamp:
+## Usage
 
-```js
-timestamp: {
-    year: int,
-    month: int,
-    day: int,
-    hour: int,
-    minute: int,
-    second: int
-}
+Typically, you'd store your entire schema in a single file called `schema.schemon` and then you can use `schemon -i schema.schemon --target python3` to generate the corresponding Python code, for example.
 
-root: {
-  header: {
-    id: int,
-    timestamp: timestamp
-  },
-  body: {
-    message: string
-  }
-}
-```
+There are a few included targets that you can use to generate code in different languages. You can also write your own target by instancing the `Encoder` class and implementing the `encode` method.

@@ -1,15 +1,23 @@
--- SchemON (Schema Object Notation)
-data SON = SON String | Err [String] deriving (Show)
+class Encoder a where
+    encode :: Program a -> String
 
-data SType a = TStr | TInt | TFloat | TBool | TChar | TList (SType a) | TObj [SPair a] deriving (Show)
+data SchemONEncoder = SchemONEncoder
+instance Encoder SchemONEncoder where
+    encode (Root t) = encodeType t
+
+newtype Program a = Root (SType a) deriving (Show)
+
+data SType a = TStr | TInt | TFloat | TBool | TChar | TList (SType a) | TObj (ObjRValue a) | TDateTime | String deriving (Show)
 data SPair a = SPair String (SType a) deriving (Show)
 
-son :: SON
-root :: SType a
+type ObjRValue a = [SPair a]
+newtype Message a = Message (ObjRValue a)
 
--- the following are equivalent and a result of parsing
-son = SON "{name: str, age: int, phoneBook: [{name: str, number: str}]}"
-root = TObj [SPair "name" TStr, SPair "age" TInt, SPair "phonebook" (TList (TObj [SPair "name" TStr, SPair "number" TStr]))]
+program :: Program a
+person :: SType a
+
+program = Root person
+person = TObj [SPair "name" TStr, SPair "age" TInt, SPair "phonebook" (TList (TObj [SPair "name" TStr, SPair "number" TStr]))]
 
 encodePair :: SPair a -> String
 encodePair (SPair name t) = name ++ ": " ++ encodeType t
@@ -26,7 +34,8 @@ encodeType t = case t of
     TFloat -> "float"
     TBool -> "bool"
     TChar -> "char"
+    TDateTime -> "datetime"
     TList a -> "[" ++ encodeType a ++ "]"
     TObj a -> "{" ++ encodePairs a ++ "}"
 
-test = encodeType root
+test = encode (program :: Program SchemONEncoder)
