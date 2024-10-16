@@ -1,0 +1,19 @@
+// example SchemON file. Note that comments are allowed in the spec.
+
+packet: {
+    id: int,
+    entityId: int?
+}
+
+position: {
+    packet: packet,
+    x: int,
+    y: int
+}
+
+translate: {
+    packet: packet,
+    dx: int,
+    dy: int,
+    collisionId: int?
+}

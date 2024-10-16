@@ -1,3 +1,5 @@
+module Main where
+
 -- Base encoding class and built-in SchemaON Encoder
 
 class Encoder a where
@@ -11,7 +13,7 @@ instance Encoder SchemONEncoder where
 
 data Program a = Message (SPair a) (Program a) | EOF deriving (Show)
 
-data SType a = TStr | TInt | TFloat | TBool | TChar | TList (SType a) | TObj (ObjRValue a) | TCustom String deriving (Show)
+data SType a = TStr | TInt | TFloat | TBool | TChar | TList (SType a) | TObj (ObjRValue a) | TNullable (SType a) | TCustom String deriving (Show)
 data SPair a = SPair String (SType a) deriving (Show)
 
 type ObjRValue a = [SPair a]
@@ -33,21 +35,22 @@ encodeType t = case t of
     TChar -> "char"
     TList a -> "[" ++ encodeType a ++ "]"
     TObj a -> "{" ++ encodePairs a ++ "}"
+    TNullable a -> encodeType a ++ "?"
     TCustom s -> s
 
 
 -- Decoding
 
-data DecodeError = SyntaxError String | SemanticsError String
-type DecodeResult a = Either [DecodeError] (Program a)
+-- data DecodeError = SyntaxError String | SemanticsError String
+-- type DecodeResult a = Either [DecodeError] (Program a)
 
-strip :: String -> String
-strip = filter (/= ' ') . filter (/= '\n') . filter (/= '\t')
+-- strip :: String -> String
+-- strip = filter (/= ' ') . filter (/= '\n') . filter (/= '\t')
 
-decode :: String -> DecodeResult a
-decode program = do
-    let s = strip program
-    return $ Message (SPair "root" TInt) EOF
+-- decode :: String -> DecodeResult a
+-- decode program = do
+--     let s = strip program
+--     return $ Message (SPair "root" TInt) EOF
 
 -- Test program
 
@@ -57,9 +60,9 @@ translate :: SPair a
 
 program = Message packet $ Message translate EOF
 packet = SPair "packet" (TObj [SPair "id" TInt])
-translate = SPair "translate" (TObj [SPair "packet" (TCustom "packet"), SPair "dx" TFloat, SPair "dy" TFloat])
+translate = SPair "translate" (TObj [SPair "packet" (TCustom "packet"), SPair "dx" TFloat, SPair "dy" TFloat, SPair "collisionId" (TNullable TInt)])
 -- packet: {id: int}
--- translate: {packet: packet, dx: float, dy: float}
+-- translate: {packet: packet, dx: float, dy: float, collisionId: int?}
 
 main = do
     putStrLn $ encode (program :: Program SchemONEncoder)
