@@ -1,3 +1,5 @@
+-- Base encoding class and built-in SchemaON Encoder
+
 class Encoder a where
     encode :: Program a -> String
 
@@ -34,6 +36,19 @@ encodeType t = case t of
     TCustom s -> s
 
 
+-- Decoding
+
+data DecodeError = SyntaxError String | SemanticsError String
+type DecodeResult a = Either [DecodeError] (Program a)
+
+strip :: String -> String
+strip = filter (/= ' ') . filter (/= '\n') . filter (/= '\t')
+
+decode :: String -> DecodeResult a
+decode program = do
+    let s = strip program
+    return $ Message (SPair "root" TInt) EOF
+
 -- Test program
 
 program :: Program a
@@ -43,6 +58,8 @@ translate :: SPair a
 program = Message packet $ Message translate EOF
 packet = SPair "packet" (TObj [SPair "id" TInt])
 translate = SPair "translate" (TObj [SPair "packet" (TCustom "packet"), SPair "dx" TFloat, SPair "dy" TFloat])
+-- packet: {id: int}
+-- translate: {packet: packet, dx: float, dy: float}
 
 main = do
     putStrLn $ encode (program :: Program SchemONEncoder)
