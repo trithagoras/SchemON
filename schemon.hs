@@ -1,6 +1,7 @@
 module Main where
 
 -- Base encoding class and built-in SchemaON Encoder
+-- TODO: make everything tail recursive!
 
 class Encoder a where
     encode :: Program a -> String
@@ -8,7 +9,6 @@ class Encoder a where
 data SchemONEncoder = SchemONEncoder
 instance Encoder SchemONEncoder where
     encode EOF = ""
-    encode (Message pair EOF) = encodePair pair
     encode (Message pair enc) = encodePair pair ++ "\n" ++ encode enc
 
 data Program a = Message (SPair a) (Program a) | EOF deriving (Show)
