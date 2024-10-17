@@ -38,22 +38,6 @@ encodeType t = case t of
     TNullable a -> encodeType a ++ "?"
     TCustom s -> s
 
-
--- Decoding
-
--- data DecodeError = SyntaxError String | SemanticsError String
--- type DecodeResult a = Either [DecodeError] (Program a)
-
--- strip :: String -> String
--- strip = filter (/= ' ') . filter (/= '\n') . filter (/= '\t')
-
--- decode :: String -> DecodeResult a
--- decode program = do
---     let s = strip program
---     return $ Message (SPair "root" TInt) EOF
-
--- Test program
-
 program :: Program a
 packet :: SPair a
 translate :: SPair a

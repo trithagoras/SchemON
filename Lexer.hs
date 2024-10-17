@@ -64,7 +64,7 @@ matchIdentifier word line start = case word of
     "char" -> Token Char line start word Nothing
     _ -> Token (Identifier word) line start word Nothing
 
-isAtEnd :: String -> Int -> Bool
+isAtEnd :: [a] -> Int -> Bool
 isAtEnd source current = current >= length source
 
 peekNext :: String -> Int -> Maybe Char
@@ -75,4 +75,4 @@ peekNext source index
 slice :: Int -> Int -> [a] -> [a]
 slice from to xs = take (to - from + 1) (drop from xs)
 
-program = "root: {\nname: str, age: int, child: {\nname: str?\n}\n}"
+program = "person: {name: str, age: int}"
