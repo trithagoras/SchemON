@@ -9,7 +9,7 @@ TFLOAT : 'float';
 TBOOL : 'bool';
 TCHAR : 'char';
 
-program : pair+ EOF;
+program : pair* EOF;
 
 type : baseType | nullableType;
 nullableType : baseType '?' ;
