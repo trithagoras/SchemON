@@ -207,8 +207,6 @@ peekAt stream current
 
 ----------------------------------- MAIN -----------------------------------
 
-test = "address: {name: str, number: int, floors: [{floorNum: int, name: str}]}, person: {name: str, age: int, address: [address]}"
-
 main = do
     handle <- openFile "test.son" ReadMode
     contents <- hGetContents handle
