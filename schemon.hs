@@ -4,11 +4,11 @@ import System.IO (openFile, IOMode (ReadMode), hGetContents)
 ----------------------------------- TYPES -----------------------------------
 
 -- AST
-data Program a = Message [SPair a] EOF deriving (Show)
-data SType a = TStr | TInt | TFloat | TBool | TChar | TList (SType a) | TObj [SPair a] | TNullable (SType a) | TCustom Identifier deriving (Show)
-data SPair a = SPair Identifier (SType a) deriving (Show)
-newtype Identifier = Identifier String deriving (Show, Eq)
-data EOF = EOF deriving (Show)
+data Program a = Message [SPair a] EOF Token deriving (Show)
+data SType a = TStr Token | TInt Token | TFloat Token | TBool Token | TChar Token | TList (SType a) Token | TObj [SPair a] Token | TNullable (SType a) Token | TCustom Identifier Token deriving (Show)
+data SPair a = SPair Identifier (SType a) Token deriving (Show)
+data Identifier = Identifier String Token deriving (Show)
+newtype EOF = EOF Token deriving (Show)
 
 -- Tokens
 data SyntaxError = UnexpectedToken deriving (Show)
@@ -23,6 +23,9 @@ data Token = Token TokenKind Int Int String (Maybe SyntaxError)
 
 instance Show Token where
     show (Token kind line col repr err) = repr ++ " at line " ++ show line ++ ":" ++ show col
+
+instance Eq Identifier where
+    (==) (Identifier a _) (Identifier b _) = a == b
 
 ----------------------------------- DECODER -----------------------------------
 
@@ -40,10 +43,10 @@ class Encoder a where
 
 data SchemONEncoder = SchemONEncoder
 instance Encoder SchemONEncoder where
-    encode (Message pairs EOF) = encodePairs pairs
+    encode (Message pairs _ _) = encodePairs pairs
 
 encodePair :: SPair a -> String
-encodePair (SPair ident t) = encodeIdentifier ident ++ ": " ++ encodeType t
+encodePair (SPair ident t _) = encodeIdentifier ident ++ ": " ++ encodeType t
 
 encodePairs :: [SPair a] -> String
 encodePairs [] = ""
@@ -52,18 +55,18 @@ encodePairs (x:xs) = encodePair x ++ ", " ++ encodePairs xs
 
 encodeType :: SType a -> String
 encodeType t = case t of
-    TStr -> "str"
-    TInt -> "int"
-    TFloat -> "float"
-    TBool -> "bool"
-    TChar -> "char"
-    TList a -> "[" ++ encodeType a ++ "]"
-    TObj a -> "{" ++ encodePairs a ++ "}"
-    TNullable a -> encodeType a ++ "?"
-    TCustom ident -> encodeIdentifier ident
+    TStr _ -> "str"
+    TInt _ -> "int"
+    TFloat _ -> "float"
+    TBool _ -> "bool"
+    TChar _ -> "char"
+    TList a _ -> "[" ++ encodeType a ++ "]"
+    TObj a _ -> "{" ++ encodePairs a ++ "}"
+    TNullable a _ -> encodeType a ++ "?"
+    TCustom ident _ -> encodeIdentifier ident
 
 encodeIdentifier :: Identifier -> String
-encodeIdentifier (Identifier s) = s
+encodeIdentifier (Identifier s _) = s
 
 ----------------------------------- LEXER -----------------------------------
 
@@ -133,7 +136,7 @@ program :: [Token] -> Either String (Program a, Int)
 program stream = do
     (ps, current) <- pairs stream 0
     current <- expect stream current EOF'
-    return (Message ps EOF, current)
+    return (Message ps (EOF (last stream)) (head stream), current)
 
 pairs :: [Token] -> Int -> Either String ([SPair a], Int)
 pairs stream current = do
@@ -147,42 +150,45 @@ pairs stream current = do
 
 pair :: [Token] -> Int -> Either String (SPair a, Int)
 pair stream current = do
+    token <- peekAt stream current
     (ident, current) <- identifier stream current
     current <- expect stream current Colon
     (t, current) <- type' stream current
-    return (SPair ident t, current)
+    return (SPair ident t token, current)
 
 listType :: [Token] -> Int -> Either String (SType a, Int)
 listType stream current = do
+    token <- peekAt stream current
     current <- expect stream current LeftSquare
     (t, current) <- type' stream current
     current <- expect stream current RightSquare
-    return (TList t, current)
+    return (TList t token, current)
 
 objType :: [Token] -> Int -> Either String (SType a, Int)
 objType stream current = do
+    token <- peekAt stream current
     current <- expect stream current LeftBrace
     (ps, current) <- pairs stream current
     current <- expect stream current RightBrace
-    return (TObj ps, current)
+    return (TObj ps token, current)
 
 
 type' :: [Token] -> Int -> Either String (SType a, Int)
 type' stream current = do
     token <- peekAt stream current
     (t, current) <- case token of
-        Token Int _ _ _ _ -> Right (TInt, current + 1)
-        Token Float _ _ _ _ -> Right (TFloat, current + 1)
-        Token Char _ _ _ _ -> Right (TChar, current + 1)
-        Token Bool _ _ _ _ -> Right (TBool, current + 1)
-        Token Str _ _ _ _ -> Right (TStr, current + 1)
-        Token (Identifier' s) _ _ _ _ -> Right (TCustom (Identifier s), current + 1)
+        Token Int _ _ _ _ -> Right (TInt token, current + 1)
+        Token Float _ _ _ _ -> Right (TFloat token, current + 1)
+        Token Char _ _ _ _ -> Right (TChar token, current + 1)
+        Token Bool _ _ _ _ -> Right (TBool token, current + 1)
+        Token Str _ _ _ _ -> Right (TStr token, current + 1)
+        Token (Identifier' s) _ _ _ _ -> Right (TCustom (Identifier s token) token, current + 1)
         Token LeftSquare _ _ _ _ -> listType stream current
         Token LeftBrace _ _ _ _ -> objType stream current
         _ -> Left $ "Expected a type but received " ++ show token
     let nullT = peekAt stream current
     case nullT of
-        Right (Token Null _ _ _ _) -> Right (TNullable t, current + 1)
+        Right (Token Null _ _ _ _) -> Right (TNullable t token, current + 1)
         _ -> Right (t, current)
 
 -- expect :: stream -> current -> expectedToken -> newCurrent
@@ -194,10 +200,10 @@ expect stream current tokenKind = do
 
 identifier :: [Token] -> Int -> Either String (Identifier, Int)
 identifier stream current = do
-    t <- peekAt stream current
-    case t of
-        Token (Identifier' s) _ _ _ _ -> Right (Identifier s, current + 1)
-        _ -> Left $ "Expected Identifier, received " ++ show t
+    token <- peekAt stream current
+    case token of
+        Token (Identifier' s) _ _ _ _ -> Right (Identifier s token, current + 1)
+        _ -> Left $ "Expected Identifier, received " ++ show token
 
 peekAt :: [a] -> Int -> Either String a
 peekAt stream current
@@ -212,8 +218,8 @@ peekAt stream current
 -- an example semantic rule is that top-level messages should only be of object type.
 
 isMessage :: SPair a -> Either String ()
-isMessage (SPair _ (TObj _)) = Right ()
-isMessage p = Left $ "Top level messages must be of type 'object'. Encountered: " ++ show p
+isMessage (SPair _ (TObj _ _) token) = Right ()
+isMessage (SPair _ _ token) = Left $ "Top level messages must be of type 'object'. Encountered: " ++ show token
 
 isMessages :: [SPair a] -> Either String ()
 isMessages = mapM_ isMessage
@@ -221,13 +227,13 @@ isMessages = mapM_ isMessage
 -- TODO: this is dumb, shouldn't do it like this
 getMessageIdents :: [SPair a] -> [Identifier]
 getMessageIdents [] = []
-getMessageIdents ((SPair ident _):ps) = ident:getMessageIdents ps
+getMessageIdents ((SPair ident _ _):ps) = ident:getMessageIdents ps
 
 visit :: Program a -> Either String ()
 visit prog = visitProgram prog []
 
 visitProgram :: Program a -> [Identifier] -> Either String ()
-visitProgram (Message ps EOF) idents = do
+visitProgram (Message ps _ _) idents = do
     _ <- isMessages ps
     let idents = getMessageIdents ps
     _ <- visitPairs ps idents
@@ -240,22 +246,22 @@ visitPairs (p:ps) idents = do
     visitPairs ps idents
 
 visitPair :: SPair a -> [Identifier] -> Either String ()
-visitPair (SPair ident t) idents = do
+visitPair (SPair ident t _) idents = do
     _ <- visitIdentifier ident idents
     _ <- visitType t idents
     return ()
     
 visitIdentifier :: Identifier -> [Identifier] -> Either String ()
-visitIdentifier (Identifier s) idents = do
+visitIdentifier (Identifier s _) idents = do
     -- TODO: need to check that this identifier is not already in scope
     return ()
 
 visitType :: SType a -> [Identifier] -> Either String ()
-visitType (TCustom ident) idents = do
+visitType (TCustom ident token) idents = do
     _ <- visitIdentifier ident idents
-    if ident `elem` idents then Right () else Left $ "Identifier " ++ show ident ++ " has not been defined before trying to use it as a type."
-visitType (TObj inner) idents = visitPairs inner idents
-visitType (TList inner) idents = visitType inner idents
+    if ident `elem` idents then Right () else Left $ "Identifier has not been defined before trying to use it as a type, at " ++ show token
+visitType (TObj inner _) idents = visitPairs inner idents
+visitType (TList inner _) idents = visitType inner idents
 visitType _ _ = Right ()
 
 
