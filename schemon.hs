@@ -218,12 +218,18 @@ isMessage p = Left $ "Top level messages must be of type 'object'. Encountered: 
 isMessages :: [SPair a] -> Either String ()
 isMessages = mapM_ isMessage
 
+-- TODO: this is dumb, shouldn't do it like this
+getMessageIdents :: [SPair a] -> [Identifier]
+getMessageIdents [] = []
+getMessageIdents ((SPair ident _):ps) = ident:getMessageIdents ps
+
 visit :: Program a -> Either String ()
 visit prog = visitProgram prog []
 
 visitProgram :: Program a -> [Identifier] -> Either String ()
 visitProgram (Message ps EOF) idents = do
     _ <- isMessages ps
+    let idents = getMessageIdents ps
     _ <- visitPairs ps idents
     return ()
 
