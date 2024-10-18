@@ -1,4 +1,5 @@
 import Data.Char (isAlpha, isAlphaNum)
+import System.IO (openFile, IOMode (ReadMode), hGetContents)
 
 ----------------------------------- TYPES -----------------------------------
 
@@ -209,7 +210,9 @@ peekAt stream current
 test = "address: {name: str, number: int, floors: [{floorNum: int, name: str}]}, person: {name: str, age: int, address: [address]}"
 
 main = do
-    case decode test of
+    handle <- openFile "test.son" ReadMode
+    contents <- hGetContents handle
+    case decode contents of
         Left s -> putStrLn s
         Right p -> putStrLn $ encode (p :: Program SchemONEncoder)
 
