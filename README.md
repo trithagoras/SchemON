@@ -22,7 +22,7 @@ Here is an example of a SchemON schema that defines a base `packet` type and a `
 ```js
 packet: {
   id: int
-}
+},
 
 translate: {
   packet: packet,
