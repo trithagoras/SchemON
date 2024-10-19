@@ -1,4 +1,4 @@
-import Data.Char (isAlpha, isAlphaNum)
+import Data.Char (isAlpha, isAlphaNum, toUpper)
 import System.IO (openFile, IOMode (ReadMode), hGetContents)
 import qualified Data.Set as Set
 
@@ -243,8 +243,6 @@ checkDuplicates ps = checkDuplicates' ps []
 checkDuplicates' :: [SPair a] -> [Identifier] -> Either String ()
 checkDuplicates' [] _ = Right ()
 checkDuplicates' ((SPair ident _ token):ps) idents = if ident `elem` idents then Left ("Duplicate identifiers in list of pairs at " ++ show token) else checkDuplicates' ps $ idents ++ [ident]
--- checkDuplicates' [] idents = if hasDuplicates idents then Left "Duplicate identifiers in list of pairs" else Right ()
--- checkDuplicates' ((SPair ident _ _):ps) idents = checkDuplicates' ps $ idents ++ [ident]
 
 visit :: Program a -> Either String ()
 visit prog = visitProgram prog []
@@ -259,7 +257,7 @@ visitProgram (Message ps _ _) idents = do
 visitPairs :: [SPair a] -> [Identifier] -> Either String ()
 visitPairs [] idents = Right ()
 visitPairs (p:ps) idents = do
-    _ <- checkDuplicates (p:ps)     -- holy performance...
+    _ <- checkDuplicates (p:ps)
     _ <- visitPair p idents
     visitPairs ps idents
 
@@ -283,6 +281,40 @@ visitType (TList inner _) idents = visitType inner idents
 visitType _ _ = Right ()
 
 
+----------------------------------- C# Encoder -----------------------------------
+
+data CSharpEncoder = CSharpEncoder
+instance Encoder CSharpEncoder where
+    encode (Message [] eof t) = ""
+    encode (Message (SPair ident innerType _:ps) eof token) = "public class " ++ csEncodeIdentifier ident ++ " " ++ csEncodeClassBody innerType 0 ++ encode (Message ps eof token)
+
+csEncodeIdentifier :: Identifier -> String
+csEncodeIdentifier (Identifier (h:s) _) = toUpper h:s
+
+csEncodeClassBody :: SType a -> Int -> String
+csEncodeClassBody (TObj inner _) indent = "{\n" ++ csEncodePairs inner (indent + 1) ++ "}\n"
+
+csEncodePairs :: [SPair a] -> Int -> String
+csEncodePairs [] _ = ""
+csEncodePairs (p:ps) indent = csEncodePair p indent ++ "\n" ++ csEncodePairs ps indent
+
+csEncodePair :: SPair a -> Int -> String
+csEncodePair (SPair ident t _) indent = csIndent indent ++ "public " ++ csEncodeType t ++ " " ++ csEncodeIdentifier ident ++ " { get; set; }"
+
+csEncodeType :: SType a -> String
+csEncodeType (TBool _) = "bool"
+csEncodeType (TInt _) = "int"
+csEncodeType (TFloat _) = "float"
+csEncodeType (TChar _) = "char"
+csEncodeType (TStr _) = "string"
+csEncodeType (TCustom ident _) = csEncodeIdentifier ident
+csEncodeType (TNullable t _) = csEncodeType t ++ "?"
+csEncodeType (TList inner _) = "List<" ++ csEncodeType inner ++ ">"
+csEncodeType (TObj inner _) = "Dictionary<string, object>"
+
+csIndent :: Int -> String
+csIndent n = replicate (n * 4) ' '
+
 ----------------------------------- MAIN -----------------------------------
 
 main = do
@@ -292,5 +324,5 @@ main = do
         Left s -> putStrLn $ "Syntactic error: " ++ s
         Right p -> case visit p of
             Left s -> putStrLn $ "Semantics error: " ++ s
-            Right () -> putStrLn $ encode (p :: Program SchemONEncoder)
+            Right () -> putStrLn $ encode (p :: Program CSharpEncoder)
 
