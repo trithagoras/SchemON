@@ -1,0 +1,11 @@
+
+address: {
+  streetName: str,
+  streetNumber: int,
+  residents: [{
+    name: str,
+    age: int,
+    salary: int
+  }],
+  neighbour: address?
+}

@@ -15,7 +15,7 @@ SchemON supports the following types:
 
 Types are limited to the basic types that are supported by most programming languages for compatibility. More complex types can be defined using dictionaries and you are able to reuse your own defined messages as types.
 
-## Example
+## Examples
 
 Here is an example of a SchemON schema that defines a base `packet` type and a `translate` packet that includes the base type in its definition.
 
@@ -57,8 +57,36 @@ public class Translate {
     public float Dy { get; set; }
     public List<Position> Collisions { get; set; }
 }
+```
 
+As another example, here is a TypeScript generated output containing a nested anonymous type.
 
+Input:
+```js
+address: {
+  streetName: str,
+  streetNumber: int,
+  residents: [{
+    name: str,
+    age: int,
+    salary: int
+  }],
+  neighbour: address?
+}
+```
+
+Output:
+```ts
+interface Address {
+    streetName: string,
+    streetNumber: number,
+    residents: {
+        name: string,
+        age: number,
+        salary: number
+    }[],
+    neighbour: Address | undefined
+}
 ```
 
 ## Usage
@@ -77,6 +105,7 @@ If you implement your own, don't forget to update the related areas in `Main.hs`
 
 * C#
 * SchemON
+* TypeScript
 
 ## Compiling
 

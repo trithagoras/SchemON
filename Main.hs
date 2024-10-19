@@ -21,11 +21,13 @@ main2 fileName targetName maybeOut = do
     case targetName of
         "cs"     -> processFile contents encodeCSharp outputFile
         "son"    -> processFile contents encodeSchemON outputFile
+        "ts"    -> processFile contents encodeTypeScript outputFile
         _        -> putStrLn $ "Invalid target name. Available targets are:\n" ++ unlines availableTargets
 
 outputExtension :: String -> String
 outputExtension "cs"     = ".cs"
 outputExtension "son"    = ".son"
+outputExtension "ts"     = ".ts"
 outputExtension _        = ""
 
 
@@ -43,5 +45,8 @@ encodeCSharp = encode
 encodeSchemON :: Program SchemONEncoder -> String
 encodeSchemON = encode
 
+encodeTypeScript :: Program TypeScriptEncoder -> String
+encodeTypeScript = encode
+
 availableTargets :: [String]
-availableTargets = ["C# (cs)", "SchemON (son)"]
+availableTargets = ["C# (cs)", "SchemON (son)", "TypeScript (ts)"]
