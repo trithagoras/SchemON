@@ -1,3 +1,4 @@
+module Schemon where
 import Data.Char (isAlpha, isAlphaNum, toUpper)
 import System.IO (openFile, IOMode (ReadMode), hGetContents)
 import qualified Data.Set as Set
@@ -31,6 +32,9 @@ instance Eq Identifier where
 instance Ord Identifier where
     (<=) (Identifier a _) (Identifier b _) = a <= b
 
+class Encoder a where
+    encode :: Program a -> String
+
 ----------------------------------- DECODER -----------------------------------
 
 decode :: String -> Either String (Program a)
@@ -39,38 +43,6 @@ decode source = do
     case program stream of
         Left s -> Left s
         Right (p, c) -> return p
-
------------------------------------ ENCODER -----------------------------------
-
-class Encoder a where
-    encode :: Program a -> String
-
-data SchemONEncoder = SchemONEncoder
-instance Encoder SchemONEncoder where
-    encode (Message pairs _ _) = encodePairs pairs
-
-encodePair :: SPair a -> String
-encodePair (SPair ident t _) = encodeIdentifier ident ++ ": " ++ encodeType t
-
-encodePairs :: [SPair a] -> String
-encodePairs [] = ""
-encodePairs [x] = encodePair x
-encodePairs (x:xs) = encodePair x ++ ", " ++ encodePairs xs
-
-encodeType :: SType a -> String
-encodeType t = case t of
-    TStr _ -> "str"
-    TInt _ -> "int"
-    TFloat _ -> "float"
-    TBool _ -> "bool"
-    TChar _ -> "char"
-    TList a _ -> "[" ++ encodeType a ++ "]"
-    TObj a _ -> "{" ++ encodePairs a ++ "}"
-    TNullable a _ -> encodeType a ++ "?"
-    TCustom ident _ -> encodeIdentifier ident
-
-encodeIdentifier :: Identifier -> String
-encodeIdentifier (Identifier s _) = s
 
 ----------------------------------- LEXER -----------------------------------
 
@@ -279,50 +251,3 @@ visitType (TCustom ident token) idents = do
 visitType (TObj inner _) idents = visitPairs inner idents
 visitType (TList inner _) idents = visitType inner idents
 visitType _ _ = Right ()
-
-
------------------------------------ C# Encoder -----------------------------------
-
-data CSharpEncoder = CSharpEncoder
-instance Encoder CSharpEncoder where
-    encode (Message [] eof t) = ""
-    encode (Message (SPair ident innerType _:ps) eof token) = "public class " ++ csEncodeIdentifier ident ++ " " ++ csEncodeClassBody innerType 0 ++ encode (Message ps eof token)
-
-csEncodeIdentifier :: Identifier -> String
-csEncodeIdentifier (Identifier (h:s) _) = toUpper h:s
-
-csEncodeClassBody :: SType a -> Int -> String
-csEncodeClassBody (TObj inner _) indent = "{\n" ++ csEncodePairs inner (indent + 1) ++ "}\n"
-
-csEncodePairs :: [SPair a] -> Int -> String
-csEncodePairs [] _ = ""
-csEncodePairs (p:ps) indent = csEncodePair p indent ++ "\n" ++ csEncodePairs ps indent
-
-csEncodePair :: SPair a -> Int -> String
-csEncodePair (SPair ident t _) indent = csIndent indent ++ "public " ++ csEncodeType t ++ " " ++ csEncodeIdentifier ident ++ " { get; set; }"
-
-csEncodeType :: SType a -> String
-csEncodeType (TBool _) = "bool"
-csEncodeType (TInt _) = "int"
-csEncodeType (TFloat _) = "float"
-csEncodeType (TChar _) = "char"
-csEncodeType (TStr _) = "string"
-csEncodeType (TCustom ident _) = csEncodeIdentifier ident
-csEncodeType (TNullable t _) = csEncodeType t ++ "?"
-csEncodeType (TList inner _) = "List<" ++ csEncodeType inner ++ ">"
-csEncodeType (TObj inner _) = "Dictionary<string, object>"
-
-csIndent :: Int -> String
-csIndent n = replicate (n * 4) ' '
-
------------------------------------ MAIN -----------------------------------
-
-main = do
-    handle <- openFile "test.son" ReadMode
-    contents <- hGetContents handle
-    case decode contents of
-        Left s -> putStrLn $ "Syntactic error: " ++ s
-        Right p -> case visit p of
-            Left s -> putStrLn $ "Semantics error: " ++ s
-            Right () -> putStrLn $ encode (p :: Program CSharpEncoder)
-
