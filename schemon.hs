@@ -1,5 +1,6 @@
 import Data.Char (isAlpha, isAlphaNum)
 import System.IO (openFile, IOMode (ReadMode), hGetContents)
+import qualified Data.Set as Set
 
 ----------------------------------- TYPES -----------------------------------
 
@@ -22,10 +23,13 @@ data TokenKind
 data Token = Token TokenKind Int Int String (Maybe SyntaxError)
 
 instance Show Token where
-    show (Token kind line col repr err) = repr ++ " at line " ++ show line ++ ":" ++ show col
+    show (Token kind line col repr err) = "'" ++ repr ++ "' at line " ++ show line ++ ":" ++ show col
 
 instance Eq Identifier where
     (==) (Identifier a _) (Identifier b _) = a == b
+
+instance Ord Identifier where
+    (<=) (Identifier a _) (Identifier b _) = a <= b
 
 ----------------------------------- DECODER -----------------------------------
 
@@ -229,6 +233,19 @@ getMessageIdents :: [SPair a] -> [Identifier]
 getMessageIdents [] = []
 getMessageIdents ((SPair ident _ _):ps) = ident:getMessageIdents ps
 
+hasDuplicates :: (Ord a) => [a] -> Bool
+hasDuplicates list = length list /= length set
+  where set = Set.fromList list
+
+checkDuplicates :: [SPair a] -> Either String ()
+checkDuplicates ps = checkDuplicates' ps [] 
+
+checkDuplicates' :: [SPair a] -> [Identifier] -> Either String ()
+checkDuplicates' [] _ = Right ()
+checkDuplicates' ((SPair ident _ token):ps) idents = if ident `elem` idents then Left ("Duplicate identifiers in list of pairs at " ++ show token) else checkDuplicates' ps $ idents ++ [ident]
+-- checkDuplicates' [] idents = if hasDuplicates idents then Left "Duplicate identifiers in list of pairs" else Right ()
+-- checkDuplicates' ((SPair ident _ _):ps) idents = checkDuplicates' ps $ idents ++ [ident]
+
 visit :: Program a -> Either String ()
 visit prog = visitProgram prog []
 
@@ -242,6 +259,7 @@ visitProgram (Message ps _ _) idents = do
 visitPairs :: [SPair a] -> [Identifier] -> Either String ()
 visitPairs [] idents = Right ()
 visitPairs (p:ps) idents = do
+    _ <- checkDuplicates (p:ps)     -- holy performance...
     _ <- visitPair p idents
     visitPairs ps idents
 
