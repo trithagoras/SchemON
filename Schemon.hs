@@ -7,7 +7,7 @@ import qualified Data.Set as Set
 
 -- AST
 data Program a = Message [SPair a] EOF Token deriving (Show)
-data SType a = TStr Token | TInt Token | TFloat Token | TBool Token | TChar Token | TList (SType a) Token | TObj [SPair a] Token | TNullable (SType a) Token | TCustom Identifier Token deriving (Show)
+data SType a = TStr Token | TInt Token | TFloat Token | TBool Token | TChar Token | TTuple [SType a] Token | TList (SType a) Token | TObj [SPair a] Token | TNullable (SType a) Token | TCustom Identifier Token deriving (Show)
 data SPair a = SPair Identifier (SType a) Token deriving (Show)
 data Identifier = Identifier String Token deriving (Show)
 newtype EOF = EOF Token deriving (Show)
@@ -15,7 +15,7 @@ newtype EOF = EOF Token deriving (Show)
 -- Tokens
 data SyntaxError = UnexpectedToken deriving (Show)
 data TokenKind
-    = Colon | Comma | LeftSquare | RightSquare | LeftBrace | RightBrace | Null
+    = Colon | Comma | LeftSquare | RightSquare | LeftBrace | RightBrace | LeftParen | RightParen | Null
     | Int | Float | Bool | Char | Str
     | Identifier' String | EOF' | NoOp | Ignore | NewLine    -- NoOp represents a bad token; Ignore is something to be ignored, e.g. whitespace
     deriving (Show, Eq)
@@ -69,6 +69,8 @@ scanToken source line start current =
         "," -> Token Comma line start word Nothing
         ":" -> Token Colon line start word Nothing
         "[" -> Token LeftSquare line start word Nothing
+        "(" -> Token LeftParen line start word Nothing
+        ")" -> Token RightParen line start word Nothing
         "]" -> Token RightSquare line start word Nothing
         "{" -> Token LeftBrace line start word Nothing
         "}" -> Token RightBrace line start word Nothing
@@ -140,6 +142,14 @@ listType stream current = do
     current <- expect stream current RightSquare
     return (TList t token, current)
 
+tupleType :: [Token] -> Int -> Either String (SType a, Int)
+tupleType stream current = do
+    token <- peekAt stream current
+    current <- expect stream current LeftParen
+    (ts, current) <- types stream current
+    current <- expect stream current RightParen
+    return (TTuple ts token, current)
+
 objType :: [Token] -> Int -> Either String (SType a, Int)
 objType stream current = do
     token <- peekAt stream current
@@ -148,6 +158,15 @@ objType stream current = do
     current <- expect stream current RightBrace
     return (TObj ps token, current)
 
+types :: [Token] -> Int -> Either String ([SType a], Int)
+types stream current = do
+    (t, current) <- type' stream current
+    token <- peekAt stream current
+    case token of
+        Token Comma _ _ _ _ -> do
+            (ts, current) <- types stream (current + 1)
+            return (t:ts, current)
+        _ -> return ([t], current)
 
 type' :: [Token] -> Int -> Either String (SType a, Int)
 type' stream current = do
@@ -159,6 +178,7 @@ type' stream current = do
         Token Bool _ _ _ _ -> Right (TBool token, current + 1)
         Token Str _ _ _ _ -> Right (TStr token, current + 1)
         Token (Identifier' s) _ _ _ _ -> Right (TCustom (Identifier s token) token, current + 1)
+        Token LeftParen _ _ _ _ -> tupleType stream current
         Token LeftSquare _ _ _ _ -> listType stream current
         Token LeftBrace _ _ _ _ -> objType stream current
         _ -> Left $ "Expected a type but received " ++ show token
@@ -244,10 +264,17 @@ visitIdentifier (Identifier s _) idents = do
     -- TODO: need to check that this identifier is not already in scope
     return ()
 
+visitTypes :: [SType a] -> [Identifier] -> Either String ()
+visitTypes (t:ts) idents = do
+    _ <- visitType t idents
+    visitTypes ts idents
+visitTypes [] idents = Right ()
+
 visitType :: SType a -> [Identifier] -> Either String ()
 visitType (TCustom ident token) idents = do
     _ <- visitIdentifier ident idents
     if ident `elem` idents then Right () else Left $ "Identifier has not been defined before trying to use it as a type, at " ++ show token
 visitType (TObj inner _) idents = visitPairs inner idents
 visitType (TList inner _) idents = visitType inner idents
+visitType (TTuple ts _) idents = visitTypes ts idents
 visitType _ _ = Right ()

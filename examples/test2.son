@@ -7,5 +7,6 @@ address: {
     age: int,
     salary: int
   }],
-  neighbour: address?
+  neighbour: address?,
+  coordinates: (float, float)
 }

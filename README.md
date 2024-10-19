@@ -11,7 +11,8 @@ SchemON supports the following types:
 * `bool` - a boolean value
 * `char` - a single character
 * `[<type>]` - a list of the specified type
-* `{(<key>: <type>)+}` - a dictionary with the specified key and value pairs
+* `(<type>+)` - a tuple of the specified type
+* `{<<key>: <type>>+}` - a dictionary with the specified key and value pairs
 
 Types are limited to the basic types that are supported by most programming languages for compatibility. More complex types can be defined using dictionaries and you are able to reuse your own defined messages as types.
 
@@ -71,7 +72,8 @@ address: {
     age: int,
     salary: int
   }],
-  neighbour: address?
+  neighbour: address?,
+  coordinates: (float, float)
 }
 ```
 
@@ -85,7 +87,8 @@ interface Address {
         age: number,
         salary: number
     }[],
-    neighbour: Address | undefined
+    neighbour: Address | undefined,
+    coordinates: [number, number]
 }
 ```
 

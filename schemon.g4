@@ -25,6 +25,7 @@ baseType : TSTR
 
 tlist : '[' type ']';
 tobj : '{' pairList? '}';
+tTuple : '(' type ')';
 
 pairList : pair (',' pair)* ;
 pair : IDENTIFIER ':' type;

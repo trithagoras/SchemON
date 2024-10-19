@@ -16,6 +16,11 @@ encodePairs [] = ""
 encodePairs [x] = encodePair x
 encodePairs (x:xs) = encodePair x ++ ", " ++ encodePairs xs
 
+encodeTypes :: [SType a] -> String
+encodeTypes [] = ""
+encodeTypes [x] = encodeType x
+encodeTypes (x:xs) = encodeType x ++ ", " ++ encodeTypes xs
+
 encodeType :: SType a -> String
 encodeType t = case t of
     TStr _ -> "str"
@@ -23,6 +28,7 @@ encodeType t = case t of
     TFloat _ -> "float"
     TBool _ -> "bool"
     TChar _ -> "char"
+    TTuple a _ -> "(" ++ encodeTypes a ++ ")"
     TList a _ -> "[" ++ encodeType a ++ "]"
     TObj a _ -> "{" ++ encodePairs a ++ "}"
     TNullable a _ -> encodeType a ++ "?"
@@ -51,6 +57,11 @@ csEncodePairs (p:ps) ind = csEncodePair p ind ++ "\n" ++ csEncodePairs ps ind
 csEncodePair :: SPair a -> Int -> String
 csEncodePair (SPair ident t _) ind = indent ind ++ "public " ++ csEncodeType t ++ " " ++ csEncodeIdentifier ident ++ " { get; set; }"
 
+csEncodeTypes :: [SType a] -> String
+csEncodeTypes [] = ""
+csEncodeTypes [x] = csEncodeType x
+csEncodeTypes (x:xs) = csEncodeType x ++ ", " ++ csEncodeTypes xs
+
 csEncodeType :: SType a -> String
 csEncodeType (TBool _) = "bool"
 csEncodeType (TInt _) = "int"
@@ -60,6 +71,7 @@ csEncodeType (TStr _) = "string"
 csEncodeType (TCustom ident _) = csEncodeIdentifier ident
 csEncodeType (TNullable t _) = csEncodeType t ++ "?"
 csEncodeType (TList inner _) = "List<" ++ csEncodeType inner ++ ">"
+csEncodeType (TTuple inner _) = "(" ++ csEncodeTypes inner ++ ")"
 csEncodeType (TObj inner _) = "Dictionary<string, object>"
 
 ----------------------------------- TypeScript Encoder -----------------------------------
@@ -86,6 +98,11 @@ tsEncodePairs (p:ps) ind = tsEncodePair p ind ++ ",\n" ++ tsEncodePairs ps ind
 tsEncodePair :: SPair a -> Int -> String
 tsEncodePair (SPair ident t _) ind = indent ind ++ tsEncodeIdentifier ident ++ ": " ++ tsEncodeType t ind
 
+tsEncodeTypes :: [SType a] -> Int -> String
+tsEncodeTypes [] indent = ""
+tsEncodeTypes [x] indent = tsEncodeType x indent
+tsEncodeTypes (x:xs) indent = tsEncodeType x indent ++ ", " ++ tsEncodeTypes xs indent
+
 tsEncodeType :: SType a -> Int -> String
 tsEncodeType (TBool _) _ = "boolean"
 tsEncodeType (TInt _) _ = "number"
@@ -95,6 +112,7 @@ tsEncodeType (TStr _) _ = "string"
 tsEncodeType (TCustom ident _) _ = tsEncodeIdentifierUpper ident
 tsEncodeType (TNullable t _) ind = tsEncodeType t ind ++ " | undefined"
 tsEncodeType (TList inner _) ind = tsEncodeType inner ind ++ "[]"
+tsEncodeType (TTuple inner _) ind = "[" ++ tsEncodeTypes inner ind ++ "]"
 tsEncodeType (TObj inner t) ind = tsEncodeClassBody (TObj inner t) ind
 
 ----------------------------------- Shared functions -----------------------------------
