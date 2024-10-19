@@ -7,9 +7,9 @@ import System.Environment (getArgs)
 main = do
     args <- getArgs
     case args of
-        [fileName, targetName] -> main2 fileName targetName Nothing
-        [fileName, targetName, out] -> main2 fileName targetName $ Just out
-        _ -> putStrLn "Usage: schemon <input-file-name> <target>"
+        [targetName, fileName] -> main2 fileName targetName Nothing
+        [targetName, fileName, out] -> main2 fileName targetName $ Just out
+        _ -> putStrLn "Usage: schemon <target> <input-file-name> [output-file-name]"
 
 main2 :: FilePath -> String -> Maybe String -> IO ()
 main2 fileName targetName maybeOut = do
@@ -17,7 +17,7 @@ main2 fileName targetName maybeOut = do
     contents <- hGetContents handle
     let outputFile = case maybeOut of
             Nothing -> "out" ++ outputExtension targetName
-            Just out -> out ++ outputExtension targetName
+            Just out -> out
     case targetName of
         "cs"     -> processFile contents encodeCSharp outputFile
         "son"    -> processFile contents encodeSchemON outputFile
