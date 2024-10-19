@@ -10,11 +10,12 @@ SchemON supports the following types:
 * `float` - a floating point number
 * `bool` - a boolean value
 * `char` - a single character
-* `'[' <type> ']'` - a list of the specified type
-* `'(' <type> (',' <type>)* ')'` - a tuple of the specified types
-* `'{' <key>: <type> (',' <key>: <type>)* '}'` - a dictionary with the specified key and value pairs
+* `T?` - a type that is nullable
+* `[T]` - a list of the specified type
+* `(T, T2, ...)` - a tuple of the specified types
+* `{key: T, key2: T2, ...}` - a dictionary with the specified key and value pairs
 
-Types are limited to the basic types that are supported by most programming languages for compatibility. More complex types can be defined using dictionaries and you are able to reuse your own defined messages as types.
+Types are limited to the basic types that are supported by most programming languages for compatibility. More complex types can be defined using dictionaries and you are able to reuse your own defined messages as types. More syntactic information can be found in the `schemon.g4` file.
 
 ## Examples
 
