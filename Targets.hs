@@ -42,7 +42,7 @@ csEncodeIdentifier :: Identifier -> String
 csEncodeIdentifier (Identifier (h:s) _) = toUpper h:s
 
 csEncodeClassBody :: SType a -> Int -> String
-csEncodeClassBody (TObj inner _) indent = "{\n" ++ csEncodePairs inner (indent + 1) ++ "}\n"
+csEncodeClassBody (TObj inner _) indent = "{\n" ++ csEncodePairs inner (indent + 1) ++ "}\n\n"
 
 csEncodePairs :: [SPair a] -> Int -> String
 csEncodePairs [] _ = ""

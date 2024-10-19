@@ -44,10 +44,12 @@ Given the C# target, the above schema is transpiled to the following:
 public class Packet {
     public int Id { get; set; }
 }
+
 public class Position {
     public float X { get; set; }
     public float Y { get; set; }
 }
+
 public class Translate {
     public Packet Packet { get; set; }
     public int EntityId { get; set; }
@@ -55,6 +57,8 @@ public class Translate {
     public float Dy { get; set; }
     public List<Position> Collisions { get; set; }
 }
+
+
 ```
 
 ## Usage
