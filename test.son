@@ -1,17 +1,16 @@
 packet: {
-    id: int,
-    entityId: int?
+  id: int
 },
 
 position: {
-    packet: packet,
-    x: int,
-    y: int
+  x: float,
+  y: float
 },
 
 translate: {
-    packet: packet,
-    dx: int,
-    dy: int,
-    collisionId: int?
+  packet: packet,
+  entityId: int,
+  dx: float,
+  dy: float,
+  collisions: [position]
 }
