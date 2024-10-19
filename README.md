@@ -5,14 +5,14 @@ SchemON is a **Schem**a **O**bject **N**otation that is designed to be human rea
 ## Types
 
 SchemON supports the following types:
-* `string` - a string of characters
+* `str` - a string of characters
 * `int` - an integer
 * `float` - a floating point number
 * `bool` - a boolean value
 * `char` - a single character
-* `[<type>]` - a list of the specified type
-* `(<type>+)` - a tuple of the specified types
-* `{<<key>: <type>>+}` - a dictionary with the specified key and value pairs
+* `'[' <type> ']'` - a list of the specified type
+* `'(' <type> (',' <type>)* ')'` - a tuple of the specified types
+* `'{' <key>: <type> (',' <key>: <type>)* '}'` - a dictionary with the specified key and value pairs
 
 Types are limited to the basic types that are supported by most programming languages for compatibility. More complex types can be defined using dictionaries and you are able to reuse your own defined messages as types.
 
