@@ -115,6 +115,57 @@ tsEncodeType (TList inner _) ind = tsEncodeType inner ind ++ "[]"
 tsEncodeType (TTuple inner _) ind = "[" ++ tsEncodeTypes inner ind ++ "]"
 tsEncodeType (TObj inner t) ind = tsEncodeClassBody (TObj inner t) ind
 
+-------------------------------------- Go Encoder --------------------------------------
+
+data GoEncoder = GoEncoder
+encode' (Message (SPair ident innerType _:ps) eof token) = "type " ++ goEncodeIdentifier ident ++ " struct " ++ goEncodeStructBody innerType 0 ++ encode (Message ps eof token)
+instance Encoder GoEncoder where
+    encode (Message [] eof t) = ""
+    encode (Message ps eof token) = "package schemon\n\n" ++ encode' (Message ps eof token)
+
+goEncodeIdentifier :: Identifier -> String
+goEncodeIdentifier (Identifier (h:s) _) = toUpper h:s
+
+goEncodeStructBody :: SType a -> Int -> String
+goEncodeStructBody (TObj inner _) ind = "{\n" ++ goEncodePairs inner (ind + 1) ++ indent ind ++ "}"
+
+goEncodePairs :: [SPair a] -> Int -> String
+goEncodePairs [] _ = ""
+goEncodePairs [p] ind = goEncodePair p ind ++ "\n"
+goEncodePairs (p:ps) ind = goEncodePair p ind ++ "\n" ++ goEncodePairs ps ind
+
+goEncodePair :: SPair a -> Int -> String
+goEncodePair (SPair ident t _) ind = indent ind ++ goEncodeIdentifier ident ++ " " ++ goEncodeType t ind
+
+goEncodeTupleElements :: [SType a] -> Int -> String
+goEncodeTupleElements [] _ = ""
+goEncodeTupleElements [x] ind = goEncodeTupleElement x ind 1
+goEncodeTupleElements (x:xs) ind = goEncodeTupleElement x ind 1 ++ goEncodeTupleElements' xs ind 2
+  where
+    goEncodeTupleElements' [] _ _ = ""
+    goEncodeTupleElements' (x:xs) ind no = goEncodeTupleElement x ind no ++ goEncodeTupleElements' xs ind (no + 1) ++ indent ind
+
+
+goEncodeTupleElement :: SType a -> Int -> Int -> String
+goEncodeTupleElement x ind no = indent (ind + 1) ++ "Item" ++ show no ++ " " ++ goEncodeType x ind ++ "\n"
+
+goEncodeTypes :: [SType a] -> Int -> String
+goEncodeTypes [] indent = ""
+goEncodeTypes [x] indent = goEncodeType x indent
+goEncodeTypes (x:xs) indent = goEncodeType x indent ++ ", " ++ goEncodeTypes xs indent
+
+goEncodeType :: SType a -> Int -> String
+goEncodeType (TBool _) _ = "bool"
+goEncodeType (TInt _) _ = "int"
+goEncodeType (TFloat _) _ = "float64"
+goEncodeType (TChar _) _ = "rune"
+goEncodeType (TStr _) _ = "string"
+goEncodeType (TCustom ident _) _ = "*" ++ goEncodeIdentifier ident
+goEncodeType (TNullable t _) ind = goEncodeType t ind
+goEncodeType (TList inner _) ind = "[]" ++ goEncodeType inner ind
+goEncodeType (TTuple inner _) ind = "*struct {\n" ++ goEncodeTupleElements inner ind ++ "}"
+goEncodeType (TObj inner t) ind = "*struct " ++ goEncodeStructBody (TObj inner t) ind
+
 ----------------------------------- Shared functions -----------------------------------
 
 indent :: Int -> String

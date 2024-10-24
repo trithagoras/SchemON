@@ -20,14 +20,16 @@ main2 fileName targetName maybeOut = do
             Just out -> out
     case targetName of
         "cs"     -> processFile contents encodeCSharp outputFile
+        "go"     -> processFile contents encodeGo outputFile
         "son"    -> processFile contents encodeSchemON outputFile
-        "ts"    -> processFile contents encodeTypeScript outputFile
+        "ts"     -> processFile contents encodeTypeScript outputFile
         _        -> putStrLn $ "Invalid target name. Available targets are:\n" ++ unlines availableTargets
 
 outputExtension :: String -> String
 outputExtension "cs"     = ".cs"
 outputExtension "son"    = ".son"
 outputExtension "ts"     = ".ts"
+outputExtension "go"     = ".go"
 outputExtension _        = ""
 
 
@@ -42,6 +44,9 @@ processFile contents encoderFunc outputFile =
 encodeCSharp :: Program CSharpEncoder -> String
 encodeCSharp = encode
 
+encodeGo :: Program GoEncoder -> String
+encodeGo = encode
+
 encodeSchemON :: Program SchemONEncoder -> String
 encodeSchemON = encode
 
@@ -49,4 +54,4 @@ encodeTypeScript :: Program TypeScriptEncoder -> String
 encodeTypeScript = encode
 
 availableTargets :: [String]
-availableTargets = ["C# (cs)", "SchemON (son)", "TypeScript (ts)"]
+availableTargets = ["C# (cs)", "Golang (go)", "SchemON (son)", "TypeScript (ts)"]
