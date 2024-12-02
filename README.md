@@ -99,7 +99,7 @@ interface Address {
 $ schemon <target> <input-file-name> [<output-file-name>]
 ```
 
-Typically, you'd store your entire schema in a single file called `schema.son` and then you can use `schemon schema.son cs` to generate the corresponding C# code, for example. You can optionally specify the output file name as well.
+Typically, you'd store your entire schema in a single file called `schema.son` and then you can use `schemon cs schema.son` to generate the corresponding C# code, for example. You can optionally specify the output file name as well.
 
 All currently available targets are listed below and are supplied in the `Targets.hs` module. You can also write your own target by instancing the `Encoder` class and implementing the `encode :: Program a -> String` method.
 
@@ -108,6 +108,7 @@ If you implement your own, don't forget to update the related areas in `Main.hs`
 ## Targets
 
 * C#
+* Go
 * SchemON
 * TypeScript
 
